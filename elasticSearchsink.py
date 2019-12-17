@@ -78,6 +78,26 @@ class ElasticSink:
         except Exception as e:
             print(f'Something went wrong and I could not index.. {data_packet}')
 
+    def search_for_word_match(self, word: str, index: str, field: str):
+        result = self.client.search(index=index,body={'query':{'match':{field:word}}})
+        for hit in result["hits"]:
+            print(hit)
+
+    def search_and_filter(self, index: str, field: str, word: str, author_id: str):
+        result = self.client.search(index=index,
+                                    body={
+                                      "query": {
+                                             "bool" : {
+                                                  "must" : [{"term" : {field : word}},],
+                                                  "filter": [{"term" : {"author_id" : author_id}}]
+                                                  }
+                                      }
+                                    }
+
+                                )
+        for hit in result["hits"]:
+            print(hit)
+
 
 if __name__ == '__main__':
     a = Author(first_name='St.',
@@ -90,7 +110,13 @@ if __name__ == '__main__':
     b.split_text_into_paragraphs()
     b.index_paragraphs()
     packets = b.split_paragraphs_into_sentences()
-
     es = ElasticSink()
     for packet in packets:
         es.index_document(packet)
+    es.search_for_word_match(word='faith',
+                             index='books',
+                             field='sentence_text')
+    es.search_and_filter(word='faith',
+                             index='books',
+                             field='sentence_text',
+                             author_id=1168)
